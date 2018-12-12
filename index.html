@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="Keywords" content="关键字">
+  <meta name="Description" content="描述">
+  <title>五子棋</title>
+  <style>
+  	*{margin:0;}
+  	button{margin: 0px 400px}
+  	canvas{background:fff;margin:20px 400px;display:block;box-shadow:0px 0px 4px #000;}
+  </style>
+</head>
+
+<body>
+	<button id = "reset" onclick = "init()" >再来一局</button>
+	<canvas width="450" height="450" id="myCanvas"></canvas>
+
+	<script type="text/javascript">
+
+		//提示游戏结束
+		function alertGameOver(){
+			ctx.font = "30px Arial";
+			ctx.fillStyle = "#FF0000";
+			if(color == "black") {
+				ctx.fillText("恭喜白棋取得胜利！", 100, 240);
+			}else{
+				ctx.fillText("恭喜黑棋取得胜利！", 100, 240);
+			}
+		}
+
+		//改变棋子颜色
+		function changeChessColor() {
+			if(color == "white"){
+				color = "black";
+			}else{
+				color = "white";
+			}
+		}
+		
+		//计算回溯的下一个格点的坐标
+		function nextPos (curPos,direction) {
+			var i, j;
+			switch (direction) {
+				case "left" :
+					i = -1, j = 0;
+					break;
+				case "right" :
+					i = 1, j = 0;
+					break;
+				case "up" :
+					i = 0, j = -1;
+					break;
+				case "down" :
+					i = 0, j = 1;
+					break;
+				case "leftUp" :
+					i = -1, j = -1;
+					break;
+				case "rightUp" :
+					i = 1, j = -1;
+					break;
+				case "leftDown" :
+					i = -1, j = 1;
+					break;
+				case "rightDown" :
+					i = 1, j = 1;
+					break;
+				defalut :
+					i = 0, j = 0;
+			}
+			return {
+				x : curPos.x + i * 30,
+				y : curPos.y + j * 30
+			}			
+		}
+
+		function isGameOverCore (curPos,direction,lastStatus) {
+		// 	console.log(isInBound(curPos));
+		// 	console.log(pointStatus[curPos.x][curPos.y]
+			if(!isInBound(curPos)) return 0;
+			var curStatus = pointStatus[curPos.x][curPos.y];
+			// console.log(!isInBound(curPos));
+			// console.log(curStatus != lastStatus);
+			if(curStatus != lastStatus) return 0;
+			// console.log(direction);
+
+			var count = 0;
+
+			switch (direction) {
+				case "left" :
+					count = isGameOverCore(nextPos(curPos,"left"), "left", curStatus);
+					break;
+				case "right" :
+					count = isGameOverCore(nextPos(curPos,"right"), "right", curStatus);
+					break;
+				case "up" :
+					count = isGameOverCore(nextPos(curPos,"up"), "up", curStatus);
+					break;
+				case "down" :
+					count = isGameOverCore(nextPos(curPos,"down"), "down", curStatus);
+					break;
+				case "leftUp" :
+					count = isGameOverCore(nextPos(curPos,"leftUp"), "leftUp", curStatus);
+					break;
+				case "rightUp" :
+					count = isGameOverCore(nextPos(curPos,"rightUp"), "rightUp", curStatus);
+					break;
+				case "leftDown" :
+					count = isGameOverCore(nextPos(curPos,"leftDown"), "leftDown", curStatus);
+					break;
+				case "rightDown" :
+					count = isGameOverCore(nextPos(curPos,"rightDown"), "rightDown", curStatus);
+					break;
+				defalut :
+					count = 0;
+			}
+
+			// console.log(count);
+			return count + 1;
+		}
+
+		//判断游戏是否结束
+		function isGameOver(mousePos){
+			var curStatus = pointStatus[mousePos.x][mousePos.y];
+
+			var count1 = 1 + isGameOverCore(nextPos(mousePos,"left"), "left", curStatus) + isGameOverCore(nextPos(mousePos,"right"), "right", curStatus);
+
+			var count2 = 1 + isGameOverCore(nextPos(mousePos,"up"), "up", curStatus) + isGameOverCore(nextPos(mousePos,"down"), "down", curStatus);
+
+			var count3 = 1 + isGameOverCore(nextPos(mousePos,"leftUp"), "leftUp", curStatus) + isGameOverCore(nextPos(mousePos,"rightDown"), "rightDown", curStatus);
+
+			var count4 = 1 + isGameOverCore(nextPos(mousePos,"rightUp"), "rightUp", curStatus) + isGameOverCore(nextPos(mousePos,"leftDown"), "leftDown", curStatus);
+
+			var count = Math.max(count1, count2, count3, count4);
+			console.log(count);
+			return count >= 5;
+		}
+
+		//判断棋子是否在棋盘范围内
+		function isInBound(mousePos) {
+			var x = mousePos.x;
+			var y = mousePos.y;
+			if(x >= leftBound && x <= rightBound && y >= topBound && y <= bottomBound) {
+				return true;
+			}
+			return false;
+		}
+
+		//判断该位置是否已有棋子
+		function isExist(mousePos){
+			if(pointStatus[mousePos.x][mousePos.y] == "blank"){
+				return false;
+			}else{
+				return true;
+			}
+		}
+
+		//获取鼠标点的位置，并找到离其最近的格点
+		function getMousePos(evt){
+			var rect = myCanvas.getBoundingClientRect();
+
+			var tempX = evt.clientX  - rect.left * (myCanvas.width / rect.width);
+			var tempY = evt.clientY  - rect.top * (myCanvas.height / rect.height);
+			return {
+				x: ((tempX / radius).toFixed()) * radius,
+				y: ((tempY / radius).toFixed()) * radius
+			}
+		}
+
+		//点击时响应绘制棋子动作，并改变棋子颜色
+		function onClickToDraw(){
+			myCanvas.addEventListener("click", function (evt) {
+			  	var mousePos = getMousePos(evt);
+				if(!isExist(mousePos) && isInBound(mousePos) && !isGameOverFlag){
+					drawChess(mousePos.x, mousePos.y);
+					pointStatus[mousePos.x][mousePos.y] = color;
+					changeChessColor();
+					isGameOverFlag = isGameOver(mousePos);
+				}
+				
+				if(isGameOverFlag){
+					alertGameOver();
+				}
+				
+			}, false);
+		}	
+
+		//绘制棋子
+		function drawChess (posX, posY){
+			ctx.beginPath();
+			ctx.arc(posX, posY, radius/2-0.5, 0, 2*Math.PI);
+			ctx.fillStyle = color;
+			ctx.fill();
+			ctx.closePath();
+			ctx.stroke();
+		}
+
+		//绘制棋盘线条方法
+		function drawChessBoard (){			
+			ctx.beginPath();
+			ctx.clearRect(0,0,myCanvas.width,myCanvas.height);
+			ctx.fillStyle = "yellow";
+			ctx.fillRect(0,0,myCanvas.width,myCanvas.height);
+			for(var i = 0; i <= lineNums; ++i){			
+				ctx.strokeStyle="grey";	
+				ctx.moveTo(leftBound + i * radius, topBound);
+				ctx.lineTo(leftBound + i * radius, bottomBound);
+				ctx.stroke();	
+				ctx.moveTo(leftBound, topBound + i * radius);
+				ctx.lineTo(rightBound, topBound + i * radius);
+				ctx.stroke();			
+			}
+		}
+
+		function init() {
+			color = "black";
+			isGameOverFlag = false;
+			for(var i = 0; i < myCanvas.width; ++i){				
+				for(var j = 0; j < myCanvas.height; ++j){
+					pointStatus[i][j] = "blank";
+				}		
+			}
+			drawChessBoard();
+		}
+
+		//获取画板
+		var myCanvas = document.getElementById('myCanvas');
+		var pointStatus = new Array(myCanvas.width);
+
+		//定义变量
+		var lineNums = 15;
+		var radius = 30;
+		var leftBound = 15;
+		var rightBound = 435;
+		var topBound = 15;
+		var bottomBound = 435;
+
+		var color;
+		var isGameOverFlag;
+		for(var i = 0; i < myCanvas.width; ++i){
+			pointStatus[i] = new Array(myCanvas.height);	
+		}
+
+
+		//获取上下文 获取权限
+		var ctx = myCanvas.getContext("2d");
+
+		init();
+
+		onClickToDraw();
+
+	</script>
+
+</body>
+
+</html>
