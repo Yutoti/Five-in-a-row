@@ -23,21 +23,69 @@
 			ctx.font = "30px Arial";
 			ctx.fillStyle = "#FF0000";
 			if(color == "black") {
-				ctx.fillText("恭喜白棋取得胜利！", 100, 240);
-			}else{
 				ctx.fillText("恭喜黑棋取得胜利！", 100, 240);
+			}else{
+				ctx.fillText("恭喜白棋取得胜利！", 100, 240);
 			}
 		}
 
-		//AI下棋
-		function alterTurn() {
+		function getAIPosToPut(pos) {
+			var curStatus = color;
+
+			var count1 = isGameOverCore(nextPos(pos,"left"), "left", curStatus) + isGameOverCore(nextPos(pos,"right"), "right", curStatus);
+
+			var count2 = isGameOverCore(nextPos(pos,"up"), "up", curStatus) + isGameOverCore(nextPos(pos,"down"), "down", curStatus);
+
+			var count3 = isGameOverCore(nextPos(pos,"leftUp"), "leftUp", curStatus) + isGameOverCore(nextPos(pos,"rightDown"), "rightDown", curStatus);
+
+			var count4 = isGameOverCore(nextPos(pos,"rightUp"), "rightUp", curStatus) + isGameOverCore(nextPos(pos,"leftDown"), "leftDown", curStatus);			
+
+			return Math.max(count1, count2, count3, count4);
+		}
+
+		//改变颜色
+		function changeColor() {
 			if(color == "white"){
 				color = "black";
 			}else{
 				color = "white";
 			}
+		}
 
-			// for(var i = 1; i < myCanvas.width; i)
+		//AI下棋
+		function alterAITurn(mousePos) {
+			changeColor();
+			var max = 0;
+			var xToPut = 0;
+			var yToPut = 0;
+			var posTemp;
+			var temp;
+			if(turn == 1){
+				xToPut = mousePos.x - 1;
+				yToPut = mousePos.y - 1;
+			}else{
+				for(var i = 0; i < rowCount; ++i) {
+					for (var j = 0; j < rowCount; ++j) {
+						posTemp = {
+							x : i,
+							y : j
+						}	
+						if(!isExist(posTemp) && isInBound(posTemp) && (temp = getAIPosToPut(posTemp)) > max) {
+							max = temp;
+							xToPut = i;
+							yToPut = j;
+						}
+					}
+				}				
+			}		
+
+			drawChess(xToPut,yToPut);
+			pointStatus[xToPut][yToPut] = color;		
+			var pos = {
+				x : xToPut,
+				y : yToPut
+			}				
+			return isGameOver(pos);
 		}
 		
 		//计算回溯的下一个格点的坐标
@@ -136,7 +184,7 @@
 
 			var count = Math.max(count1, count2, count3, count4);
 			console.log(count);
-			return count >= 5;
+			return count >= 5 ? 2 : 1;
 		}
 
 		//判断棋子是否在棋盘范围内
@@ -174,24 +222,35 @@
 		function onClickToDraw(){
 			myCanvas.addEventListener("click", function (evt) {
 			  	var mousePos = getMousePos(evt);
-				if(!isExist(mousePos) && isInBound(mousePos) && !isGameOverFlag){
+				if(!isExist(mousePos) && isInBound(mousePos) && winCount == 1){
 					console.log(mousePos.x + " " + mousePos.y);
-					drawChess((mousePos.x + 1) * 30, (mousePos.y + 1) * 30);
-					pointStatus[mousePos.x][mousePos.y] = color;
-					alterTurn();
-					isGameOverFlag = isGameOver(mousePos);
-				}
+					drawChess(mousePos.x, mousePos.y);
+					pointStatus[mousePos.x][mousePos.y] = color;					
+					winCount = isGameOver(mousePos);	
+					// console.log(winCount);
+					if(winCount == 2){
+						alertGameOver();
+						++winCount;
+						return;
+					}				
+				}				
 				
-				if(isGameOverFlag && winCount == 1){
-					alertGameOver();
-					++winCount;
+				if(winCount == 1){
+					winCount = alterAITurn(mousePos);
+					if(winCount == 2){
+						alertGameOver();
+						++winCount;
+					}
+					changeColor();
 				}
-				
+				++turn;
 			}, false);
 		}	
 
 		//绘制棋子
 		function drawChess (posX, posY){
+			posX = (posX + 1) * 30;
+			posY = (posY + 1) * 30;
 			ctx.beginPath();
 			ctx.arc(posX, posY, radius/2-0.5, 0, 2*Math.PI);
 			ctx.fillStyle = color;
@@ -220,7 +279,7 @@
 		function init() {
 			color = "black";
 			winCount = 1;
-			isGameOverFlag = false;
+			turn = 1;
 			for(var i = 0; i < rowCount; ++i){				
 				for(var j = 0; j < rowCount; ++j){
 					pointStatus[i][j] = "blank";
@@ -242,9 +301,8 @@
 		var winCount;
 		var rowCount = (rightBound - leftBound) / radius;
 		var pointStatus = new Array(rowCount);
-
+		var turn;
 		var color;
-		var isGameOverFlag;
 		for(var i = 0; i < rowCount; ++i){
 			pointStatus[i] = new Array(rowCount);	
 		}
