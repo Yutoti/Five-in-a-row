@@ -179,8 +179,9 @@
 					isGameOverFlag = isGameOver(mousePos);
 				}
 				
-				if(isGameOverFlag){
+				if(isGameOverFlag && winCount == 1){
 					alertGameOver();
+					++winCount;
 				}
 				
 			}, false);
@@ -215,6 +216,7 @@
 
 		function init() {
 			color = "black";
+			winCount = 1;
 			isGameOverFlag = false;
 			for(var i = 0; i < myCanvas.width; ++i){				
 				for(var j = 0; j < myCanvas.height; ++j){
@@ -235,6 +237,7 @@
 		var rightBound = 435;
 		var topBound = 15;
 		var bottomBound = 435;
+		var winCount;
 
 		var color;
 		var isGameOverFlag;
