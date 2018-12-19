@@ -1,23 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta name="Keywords" content="关键字">
-  <meta name="Description" content="描述">
-  <title>五子棋-单机人人对战版</title>
-  <style>
-  	*{margin:0;}
-  	button{margin: 0px 400px}
-  	canvas{background:fff;margin:20px 400px;display:block;box-shadow:0px 0px 4px #000;}
-  </style>
+	<meta charset="utf-8">
+	<meta name="Keywords" content="五子棋，单机，人机对战">
+	<meta name="Description" content="单机版的人机对战五子棋">
+	<title>五子棋-单机人机对战版</title>
+	<style>
+	*{margin:0;}
+	canvas{background:fff;margin:20px 400px;display:block;box-shadow:0px 0px 4px #000;}
+</style>
 </head>
 
 <body>
-	<button id = "reset" onclick = "init()" >再来一局</button>
 	<canvas width="450" height="450" id="myCanvas"></canvas>
+	<input type="button" value="再来一局" onclick="init()" style="font-size: 50px; width: 100px; margin: 0px 400px "/>
 
 	<script type="text/javascript">
-
 		//提示游戏结束
 		function alertGameOver(){
 			ctx.font = "30px Arial";
@@ -31,16 +29,27 @@
 
 		function getAIPosToPut(pos) {
 			var curStatus = color;
+			var count = new Array(4);
+			count[0] = isGameOverCore(nextPos(pos,"left"), "left", curStatus) + isGameOverCore(nextPos(pos,"right"), "right", curStatus);
 
-			var count1 = isGameOverCore(nextPos(pos,"left"), "left", curStatus) + isGameOverCore(nextPos(pos,"right"), "right", curStatus);
+			count[1] = isGameOverCore(nextPos(pos,"up"), "up", curStatus) + isGameOverCore(nextPos(pos,"down"), "down", curStatus);
 
-			var count2 = isGameOverCore(nextPos(pos,"up"), "up", curStatus) + isGameOverCore(nextPos(pos,"down"), "down", curStatus);
+			count[2] = isGameOverCore(nextPos(pos,"leftUp"), "leftUp", curStatus) + isGameOverCore(nextPos(pos,"rightDown"), "rightDown", curStatus);
 
-			var count3 = isGameOverCore(nextPos(pos,"leftUp"), "leftUp", curStatus) + isGameOverCore(nextPos(pos,"rightDown"), "rightDown", curStatus);
-
-			var count4 = isGameOverCore(nextPos(pos,"rightUp"), "rightUp", curStatus) + isGameOverCore(nextPos(pos,"leftDown"), "leftDown", curStatus);			
-
-			return Math.max(count1, count2, count3, count4);
+			count[3] = isGameOverCore(nextPos(pos,"rightUp"), "rightUp", curStatus) + isGameOverCore(nextPos(pos,"leftDown"), "leftDown", curStatus);			
+			var weight = 0;
+			for(var i = 0; i < 4; i++){
+				if(count[i] == 1){		//周围有1个相同的
+					weight += 2;
+				}else if(count[i] == 2){
+					weight += 5;
+				}else if(count[i] == 3){
+					weight += 20;
+				}else if(count[i] == 4){
+					weight += 100;
+				}
+			}
+			return weight;
 		}
 
 		//改变颜色
@@ -55,29 +64,41 @@
 		//AI下棋
 		function alterAITurn(mousePos) {
 			changeColor();
-			var max = 0;
+			var maxWeight = 0;
 			var xToPut = 0;
 			var yToPut = 0;
 			var posTemp;
-			var temp;
-			if(turn == 1){
-				xToPut = mousePos.x - 1;
-				yToPut = mousePos.y - 1;
-			}else{
-				for(var i = 0; i < rowCount; ++i) {
-					for (var j = 0; j < rowCount; ++j) {
-						posTemp = {
-							x : i,
-							y : j
-						}	
-						if(!isExist(posTemp) && isInBound(posTemp) && (temp = getAIPosToPut(posTemp)) > max) {
-							max = temp;
-							xToPut = i;
-							yToPut = j;
-						}
+			var weight;
+			
+			for(var i = 0; i < rowCount; ++i) {
+				for (var j = 0; j < rowCount; ++j) {
+					posTemp = {
+						x : i,
+						y : j
+					}	
+					if(!isExist(posTemp) && isInBound(posTemp) && (weight = getAIPosToPut(posTemp)) > maxWeight) {
+						maxWeight = weight;
+						xToPut = i;
+						yToPut = j;
 					}
-				}				
-			}		
+				}
+			}	
+			changeColor();	
+			for(var i = 0; i < rowCount; ++i) {
+				for (var j = 0; j < rowCount; ++j) {
+					posTemp = {
+						x : i,
+						y : j
+					}	
+					if(!isExist(posTemp) && isInBound(posTemp) && (weight = getAIPosToPut(posTemp)) > maxWeight) {
+						maxWeight = weight;
+						xToPut = i;
+						yToPut = j;
+					}
+				}
+			}	
+			changeColor();			
+
 
 			drawChess(xToPut,yToPut);
 			pointStatus[xToPut][yToPut] = color;		
@@ -93,31 +114,31 @@
 			var i, j;
 			switch (direction) {
 				case "left" :
-					i = -1, j = 0;
-					break;
+				i = -1, j = 0;
+				break;
 				case "right" :
-					i = 1, j = 0;
-					break;
+				i = 1, j = 0;
+				break;
 				case "up" :
-					i = 0, j = -1;
-					break;
+				i = 0, j = -1;
+				break;
 				case "down" :
-					i = 0, j = 1;
-					break;
+				i = 0, j = 1;
+				break;
 				case "leftUp" :
-					i = -1, j = -1;
-					break;
+				i = -1, j = -1;
+				break;
 				case "rightUp" :
-					i = 1, j = -1;
-					break;
+				i = 1, j = -1;
+				break;
 				case "leftDown" :
-					i = -1, j = 1;
-					break;
+				i = -1, j = 1;
+				break;
 				case "rightDown" :
-					i = 1, j = 1;
-					break;
+				i = 1, j = 1;
+				break;
 				defalut :
-					i = 0, j = 0;
+				i = 0, j = 0;
 			}
 			return {
 				x : curPos.x + i,
@@ -128,8 +149,8 @@
 		function isGameOverCore (curPos,direction,lastStatus) {
 		// 	console.log(isInBound(curPos));
 		// 	console.log(pointStatus[curPos.x][curPos.y]
-			if(!isInBound(curPos)) return 0;
-			var curStatus = pointStatus[curPos.x][curPos.y];
+		if(!isInBound(curPos)) return 0;
+		var curStatus = pointStatus[curPos.x][curPos.y];
 			// console.log(!isInBound(curPos));
 			// console.log(curStatus != lastStatus);
 			if(curStatus != lastStatus) return 0;
@@ -139,31 +160,31 @@
 
 			switch (direction) {
 				case "left" :
-					count = isGameOverCore(nextPos(curPos,"left"), "left", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"left"), "left", curStatus);
+				break;
 				case "right" :
-					count = isGameOverCore(nextPos(curPos,"right"), "right", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"right"), "right", curStatus);
+				break;
 				case "up" :
-					count = isGameOverCore(nextPos(curPos,"up"), "up", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"up"), "up", curStatus);
+				break;
 				case "down" :
-					count = isGameOverCore(nextPos(curPos,"down"), "down", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"down"), "down", curStatus);
+				break;
 				case "leftUp" :
-					count = isGameOverCore(nextPos(curPos,"leftUp"), "leftUp", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"leftUp"), "leftUp", curStatus);
+				break;
 				case "rightUp" :
-					count = isGameOverCore(nextPos(curPos,"rightUp"), "rightUp", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"rightUp"), "rightUp", curStatus);
+				break;
 				case "leftDown" :
-					count = isGameOverCore(nextPos(curPos,"leftDown"), "leftDown", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"leftDown"), "leftDown", curStatus);
+				break;
 				case "rightDown" :
-					count = isGameOverCore(nextPos(curPos,"rightDown"), "rightDown", curStatus);
-					break;
+				count = isGameOverCore(nextPos(curPos,"rightDown"), "rightDown", curStatus);
+				break;
 				defalut :
-					count = 0;
+				count = 0;
 			}
 
 			// console.log(count);
@@ -221,7 +242,7 @@
 		//点击时响应绘制棋子动作，并改变棋子颜色
 		function onClickToDraw(){
 			myCanvas.addEventListener("click", function (evt) {
-			  	var mousePos = getMousePos(evt);
+				var mousePos = getMousePos(evt);
 				if(!isExist(mousePos) && isInBound(mousePos) && winCount == 1){
 					console.log(mousePos.x + " " + mousePos.y);
 					drawChess(mousePos.x, mousePos.y);
